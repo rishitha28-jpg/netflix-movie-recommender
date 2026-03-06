@@ -115,15 +115,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def load_models():
     global movies, similarity
 
-    # load dataset instead of pkl
     movies_path = os.path.join(BASE_DIR, "data", "movies.csv")
 
     movies = pd.read_csv(movies_path)
 
-    # compute similarity dynamically
+    # create tags column from available text columns
+    movies["tags"] = (
+        movies["overview"].fillna("").astype(str) + " " +
+        movies["genres"].fillna("").astype(str)
+    )
+
     cv = CountVectorizer(max_features=5000, stop_words="english")
 
-    vectors = cv.fit_transform(movies["tags"].astype(str)).toarray()
+    vectors = cv.fit_transform(movies["tags"]).toarray()
 
     similarity = cosine_similarity(vectors)
 
