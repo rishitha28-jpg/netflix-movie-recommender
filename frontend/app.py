@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "https://netflix-movie-recommender-1.onrender.com"
+API_URL = "http://127.0.0.1:8000"
 TMDB_KEY = "2acecd8f5497e05fb04b7744f230aba2"
 
 st.set_page_config(page_title="Netflix Recommender", layout="wide")
@@ -145,7 +145,7 @@ if st.button("Recommend"):
                     poster, rating, year = fetch_poster(m)
 
                     if poster:
-                        st.image(poster, use_container_width=True)
+                        st.image(poster, width="stretch")
 
                     st.markdown(f'<p class="movie-title">{m}</p>', unsafe_allow_html=True)
 
@@ -181,7 +181,7 @@ for col, m in zip(cols, trend[:5]):
         poster, rating, year = fetch_poster(m)
 
         if poster:
-            st.image(poster, use_container_width=True)
+            st.image(poster, width="stretch")
 
         st.markdown(f'<p class="movie-title">{m}</p>', unsafe_allow_html=True)
 
@@ -198,7 +198,7 @@ for col, m in zip(cols, trend[5:10]):
         poster, rating, year = fetch_poster(m)
 
         if poster:
-            st.image(poster, use_container_width=True)
+            st.image(poster, width="stretch")
 
         st.markdown(f'<p class="movie-title">{m}</p>', unsafe_allow_html=True)
 
