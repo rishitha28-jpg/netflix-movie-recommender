@@ -101,27 +101,31 @@ os.makedirs(models_dir, exist_ok=True)
 movies_path = os.path.join(models_dir, "movies.pkl")
 similarity_path = os.path.join(models_dir, "content_similarity.pkl")
 
+
 # -------- DOWNLOAD MODELS FROM GOOGLE DRIVE --------
 
-# movies.pkl
 if not os.path.exists(movies_path):
+    print("Downloading movies.pkl...")
     gdown.download(
         "https://drive.google.com/uc?id=19t9RKvI9D6fWek9_fdb43M62e4b9_h62",
         movies_path,
         quiet=False
     )
 
-# content_similarity.pkl
 if not os.path.exists(similarity_path):
+    print("Downloading similarity model...")
     gdown.download(
         "https://drive.google.com/uc?id=1vFvw7JG4oKX05a1deVNUO65mMYj8ndtt",
         similarity_path,
         quiet=False
     )
 
+
 # -------- LOAD MODELS --------
 movies = pickle.load(open(movies_path, "rb"))
 similarity = pickle.load(open(similarity_path, "rb"))
+
+movies["title"] = movies["title"].astype(str)
 
 
 # -------- HOME --------
@@ -134,24 +138,31 @@ def home():
 @app.get("/recommend/{movie}")
 def recommend(movie: str, n: int = 5):
 
-    titles = movies["title"].str.lower()
+    try:
 
-    if movie.lower() not in titles.values:
-        raise HTTPException(status_code=404, detail="Movie not found")
+        titles = movies["title"].str.lower()
 
-    movie_index = movies[titles == movie.lower()].index[0]
+        matches = movies[titles.str.contains(movie.lower(), na=False)]
 
-    distances = similarity[movie_index]
+        if matches.empty:
+            raise HTTPException(status_code=404, detail="Movie not found")
 
-    movie_list = sorted(
-        list(enumerate(distances)),
-        key=lambda x: x[1],
-        reverse=True
-    )[1:n+1]
+        movie_index = matches.index[0]
 
-    rec_movies = [movies.iloc[i[0]].title for i in movie_list]
+        distances = similarity[movie_index]
 
-    return {"recommendations": rec_movies}
+        movie_list = sorted(
+            list(enumerate(distances)),
+            key=lambda x: x[1],
+            reverse=True
+        )[1:n+1]
+
+        rec_movies = [movies.iloc[i[0]].title for i in movie_list]
+
+        return {"recommendations": rec_movies}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # -------- SEARCH --------
@@ -168,4 +179,5 @@ def search(query: str):
 # -------- TRENDING --------
 @app.get("/trending")
 def trending():
+
     return {"movies": movies["title"].sample(10).tolist()}
