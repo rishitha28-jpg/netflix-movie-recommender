@@ -1,4 +1,4 @@
 __pycache__/
- *.pkl
 venv/
 .env
+*.pkl
