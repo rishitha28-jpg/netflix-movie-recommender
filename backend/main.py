@@ -62,12 +62,15 @@ def load_models():
 
     movies["title"] = movies["title"].astype(str)
 
-    # ensure numpy array
+    # IMPORTANT FIX: reset index so it matches similarity matrix
+    movies = movies.reset_index(drop=True)
+
+    # ensure similarity is numpy array
     if isinstance(similarity, pd.DataFrame):
         similarity = similarity.values
 
     print("Models loaded successfully")
-
+    
 
 # -------- HOME --------
 @app.get("/")
