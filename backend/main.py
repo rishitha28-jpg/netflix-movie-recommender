@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 import pickle
 import os
 import gdown
-import random
 import pandas as pd
 
 app = FastAPI()
@@ -28,7 +27,7 @@ def download_models():
         )
 
     if not os.path.exists(similarity_path):
-        print("Downloading similarity model")
+        print("Downloading similarity.pkl")
         gdown.download(
             "https://drive.google.com/uc?id=1vFvw7JG4oKX05a1deVNUO65mMYj8ndtt",
             similarity_path,
@@ -52,6 +51,8 @@ def load_models():
     movies = pickle.load(open(movies_path, "rb"))
     similarity = pickle.load(open(similarity_path, "rb"))
 
+    movies["title"] = movies["title"].astype(str)
+
     print("Models loaded successfully")
 
 
@@ -65,25 +66,48 @@ def home():
 @app.get("/recommend/{movie}")
 def recommend(movie: str, n: int = 5):
 
-    if movies is None or similarity is None:
-        raise HTTPException(status_code=500, detail="Model not loaded")
+    try:
 
-    movie_index = random.randint(0, len(similarity) - 1)
+        movie = movie.lower()
 
-    distances = similarity[movie_index]
+        titles = movies["title"].str.lower()
 
-    distances = list(enumerate(distances))
-    distances = sorted(distances, key=lambda x: x[1], reverse=True)
+        if movie not in titles.values:
+            raise HTTPException(status_code=404, detail="Movie not found")
 
-    n = min(n, len(distances) - 1)
+        movie_index = movies[titles == movie].index[0]
 
-    movie_list = distances[1:n+1]
+        distances = similarity[movie_index]
 
-    recommendations = [movies.iloc[i[0]].title for i in movie_list]
+        movie_list = sorted(
+            list(enumerate(distances)),
+            key=lambda x: x[1],
+            reverse=True
+        )[1:n+1]
+
+        recommendations = [
+            movies.iloc[i[0]].title for i in movie_list
+        ]
+
+        return {
+            "movie": movie,
+            "recommendations": recommendations
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -------- SEARCH --------
+@app.get("/search/{query}")
+def search(query: str):
+
+    results = movies[
+        movies["title"].str.contains(query, case=False, na=False)
+    ]
 
     return {
-        "movie": movie,
-        "recommendations": recommendations
+        "results": results["title"].head(10).tolist()
     }
 
 
@@ -91,21 +115,6 @@ def recommend(movie: str, n: int = 5):
 @app.get("/trending")
 def trending():
 
-    if movies is None:
-        raise HTTPException(status_code=500, detail="Movies not loaded")
-
-    return {"movies": movies["title"].sample(10).tolist()}
-
-
-# -------- SEARCH --------
-@app.get("/search/{query}")
-def search(query: str):
-
-    if movies is None:
-        raise HTTPException(status_code=500, detail="Movies not loaded")
-
-    results = movies[
-        movies["title"].str.contains(query, case=False, na=False)
-    ]
-
-    return {"results": results["title"].head(10).tolist()}
+    return {
+        "movies": movies["title"].sample(10).tolist()
+    }
