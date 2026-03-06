@@ -53,26 +53,22 @@ def recommend(movie: str, n: int = 5):
     if similarity is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
 
-    try:
-        movie_index = random.randint(0, len(similarity) - 1)
+    movie_index = random.randint(0, len(similarity) - 1)
 
-        distances = similarity[movie_index]
+    distances = similarity[movie_index]
 
-        movie_list = sorted(
-            list(enumerate(distances)),
-            key=lambda x: x[1],
-            reverse=True
-        )[1:n+1]
+    movie_list = sorted(
+        list(enumerate(distances)),
+        key=lambda x: x[1],
+        reverse=True
+    )[1:n+1]
 
-        recommendations = [str(i[0]) for i in movie_list]
+    recommendations = [str(i[0]) for i in movie_list]
 
-        return {
-            "movie": movie,
-            "recommendations": recommendations
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
+    return {
+        "movie": movie,
+        "recommendations": recommendations
+    }
 
 
 # -------- TRENDING --------
