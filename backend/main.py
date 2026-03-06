@@ -18,18 +18,20 @@ similarity_path = os.path.join(models_dir, "content_similarity.pkl")
 # -------- DOWNLOAD MODELS --------
 def download_models():
 
+    # correct movies.pkl
     if not os.path.exists(movies_path):
         print("Downloading movies.pkl")
         gdown.download(
-            "https://drive.google.com/uc?id=19t9RKvI9D6fWek9_fdb43M62e4b9_h62",
+            "https://drive.google.com/uc?id=1vFvw7JG4oKX05a1deVNUO65mMYj8ndtt",
             movies_path,
             quiet=False
         )
 
+    # correct similarity.pkl
     if not os.path.exists(similarity_path):
-        print("Downloading similarity.pkl")
+        print("Downloading content_similarity.pkl")
         gdown.download(
-            "https://drive.google.com/uc?id=1vFvw7JG4oKX05a1deVNUO65mMYj8ndtt",
+            "https://drive.google.com/uc?id=19t9RKvI9D6fWek9_fdb43M62e4b9_h62",
             similarity_path,
             quiet=False
         )
@@ -50,17 +52,17 @@ def load_models():
     movies = pickle.load(open(movies_path, "rb"))
     similarity = pickle.load(open(similarity_path, "rb"))
 
-    # convert to dataframe if needed
+    # ensure dataframe
     if not isinstance(movies, pd.DataFrame):
         movies = pd.DataFrame(movies)
 
-    # ensure title column exists
+    # ensure title column
     if "title" not in movies.columns:
         movies["title"] = movies.iloc[:, 0]
 
     movies["title"] = movies["title"].astype(str)
 
-    # convert similarity to numpy if dataframe
+    # ensure numpy array
     if isinstance(similarity, pd.DataFrame):
         similarity = similarity.values
 
