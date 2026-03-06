@@ -6,9 +6,8 @@ import random
 
 app = FastAPI()
 
-# -------- BASE DIRECTORY --------
+# -------- PATHS --------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 models_dir = os.path.join(BASE_DIR, "models")
 os.makedirs(models_dir, exist_ok=True)
 
@@ -17,10 +16,8 @@ similarity_path = os.path.join(models_dir, "content_similarity.pkl")
 
 # -------- DOWNLOAD MODEL --------
 def download_model():
-
     if not os.path.exists(similarity_path):
-        print("Downloading similarity model")
-
+        print("Downloading similarity model...")
         gdown.download(
             "https://drive.google.com/uc?id=1vFvw7JG4oKX05a1deVNUO65mMYj8ndtt",
             similarity_path,
@@ -35,11 +32,9 @@ similarity = None
 # -------- LOAD MODEL --------
 @app.on_event("startup")
 def load_model():
-
     global similarity
 
     download_model()
-
     similarity = pickle.load(open(similarity_path, "rb"))
 
     print("Similarity model loaded successfully")
@@ -58,23 +53,26 @@ def recommend(movie: str, n: int = 5):
     if similarity is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
 
-    # choose random movie index
-    movie_index = random.randint(0, len(similarity) - 1)
+    try:
+        movie_index = random.randint(0, len(similarity) - 1)
 
-    distances = similarity[movie_index]
+        distances = similarity[movie_index]
 
-    movie_list = sorted(
-        list(enumerate(distances)),
-        key=lambda x: x[1],
-        reverse=True
-    )[1:n+1]
+        movie_list = sorted(
+            list(enumerate(distances)),
+            key=lambda x: x[1],
+            reverse=True
+        )[1:n+1]
 
-    recommendations = [str(i[0]) for i in movie_list]
+        recommendations = [str(i[0]) for i in movie_list]
 
-    return {
-        "movie": movie,
-        "recommendations": recommendations
-    }
+        return {
+            "movie": movie,
+            "recommendations": recommendations
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # -------- TRENDING --------
@@ -92,6 +90,4 @@ def trending():
 # -------- SEARCH --------
 @app.get("/search/{query}")
 def search(query: str):
-
-    # dummy search results
     return {"results": ["Movie1", "Movie2", "Movie3"]}
