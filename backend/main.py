@@ -3,6 +3,7 @@ import pickle
 import os
 import gdown
 import random
+import pandas as pd
 
 app = FastAPI()
 
@@ -11,13 +12,23 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 models_dir = os.path.join(BASE_DIR, "models")
 os.makedirs(models_dir, exist_ok=True)
 
+movies_path = os.path.join(models_dir, "movies.pkl")
 similarity_path = os.path.join(models_dir, "content_similarity.pkl")
 
 
-# -------- DOWNLOAD MODEL --------
-def download_model():
+# -------- DOWNLOAD MODELS --------
+def download_models():
+
+    if not os.path.exists(movies_path):
+        print("Downloading movies.pkl")
+        gdown.download(
+            "https://drive.google.com/uc?id=19t9RKvI9D6fWek9_fdb43M62e4b9_h62",
+            movies_path,
+            quiet=False
+        )
+
     if not os.path.exists(similarity_path):
-        print("Downloading similarity model...")
+        print("Downloading similarity model")
         gdown.download(
             "https://drive.google.com/uc?id=1vFvw7JG4oKX05a1deVNUO65mMYj8ndtt",
             similarity_path,
@@ -25,19 +36,23 @@ def download_model():
         )
 
 
-# -------- GLOBAL VARIABLE --------
+# -------- GLOBAL VARIABLES --------
+movies = None
 similarity = None
 
 
-# -------- LOAD MODEL --------
+# -------- LOAD MODELS --------
 @app.on_event("startup")
-def load_model():
-    global similarity
+def load_models():
 
-    download_model()
+    global movies, similarity
+
+    download_models()
+
+    movies = pickle.load(open(movies_path, "rb"))
     similarity = pickle.load(open(similarity_path, "rb"))
 
-    print("Similarity model loaded successfully")
+    print("Models loaded successfully")
 
 
 # -------- HOME --------
@@ -50,52 +65,47 @@ def home():
 @app.get("/recommend/{movie}")
 def recommend(movie: str, n: int = 5):
 
-    if similarity is None:
+    if movies is None or similarity is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
 
-    try:
-        # choose random index safely
-        movie_index = random.randint(0, len(similarity) - 1)
+    movie_index = random.randint(0, len(similarity) - 1)
 
-        distances = similarity[movie_index]
+    distances = similarity[movie_index]
 
-        # convert to list safely
-        distances = list(enumerate(distances))
+    distances = list(enumerate(distances))
+    distances = sorted(distances, key=lambda x: x[1], reverse=True)
 
-        # sort by similarity score
-        distances = sorted(distances, key=lambda x: x[1], reverse=True)
+    n = min(n, len(distances) - 1)
 
-        # limit n so we don't overflow
-        n = min(n, len(distances) - 1)
+    movie_list = distances[1:n+1]
 
-        movie_list = distances[1:n+1]
+    recommendations = [movies.iloc[i[0]].title for i in movie_list]
 
-        recommendations = [str(i[0]) for i in movie_list]
+    return {
+        "movie": movie,
+        "recommendations": recommendations
+    }
 
-        return {
-            "movie": movie,
-            "recommendations": recommendations
-        }
-
-    except Exception as e:
-        return {
-            "error": str(e),
-            "status": "recommendation failed"
-        }
 
 # -------- TRENDING --------
 @app.get("/trending")
 def trending():
 
-    if similarity is None:
-        raise HTTPException(status_code=500, detail="Model not loaded")
+    if movies is None:
+        raise HTTPException(status_code=500, detail="Movies not loaded")
 
-    movies = random.sample(range(len(similarity)), 10)
-
-    return {"movies": [str(i) for i in movies]}
+    return {"movies": movies["title"].sample(10).tolist()}
 
 
 # -------- SEARCH --------
 @app.get("/search/{query}")
 def search(query: str):
-    return {"results": ["Movie1", "Movie2", "Movie3"]}
+
+    if movies is None:
+        raise HTTPException(status_code=500, detail="Movies not loaded")
+
+    results = movies[
+        movies["title"].str.contains(query, case=False, na=False)
+    ]
+
+    return {"results": results["title"].head(10).tolist()}
