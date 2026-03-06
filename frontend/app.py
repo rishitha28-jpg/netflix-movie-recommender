@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://netflix-movie-recommender.onrender.com"
 TMDB_KEY = "2acecd8f5497e05fb04b7744f230aba2"
 
 st.set_page_config(page_title="Netflix Recommender", layout="wide")
