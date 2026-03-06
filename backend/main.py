@@ -1,25 +1,7 @@
-# from fastapi import FastAPI
-# from src.recommender import content_recommend
-
-
-# app = FastAPI()
-
-
-# @app.get("/")
-# def home():
-
-#     return {"message": "Movie Recommendation API Running"}
-
-
-# @app.get("/recommend/{movie}")
-# def recommend(movie: str):
-
-#     recommendations = content_recommend(movie)
-
-#     return {"recommendations": recommendations}
 from fastapi import FastAPI, HTTPException
 import pickle
 import pandas as pd
+import os
 
 app = FastAPI(
     title="Netflix Movie Recommendation API",
@@ -31,13 +13,20 @@ similarity = None
 movies = None
 
 
+# ---------- GET BASE DIRECTORY ----------
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 # ---------- LOAD MODELS ----------
 @app.on_event("startup")
 def load_models():
     global similarity, movies
 
-    similarity = pickle.load(open("models/content_similarity.pkl", "rb"))
-    movies = pickle.load(open("models/movies.pkl", "rb"))
+    similarity_path = os.path.join(BASE_DIR, "models", "content_similarity.pkl")
+    movies_path = os.path.join(BASE_DIR, "models", "movies.pkl")
+
+    similarity = pickle.load(open(similarity_path, "rb"))
+    movies = pickle.load(open(movies_path, "rb"))
 
 
 # ---------- HOME ----------
@@ -77,7 +66,10 @@ def recommend(movie: str, n: int = 5):
         movies.iloc[i[0]].title for i in movie_list
     ]
 
-    return {"movie": movie, "recommendations": recommendations}
+    return {
+        "movie": movie,
+        "recommendations": recommendations
+    }
 
 
 # ---------- TRENDING ----------
